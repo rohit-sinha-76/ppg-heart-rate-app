@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# Large Datasets and Models
+bidmc_csv/
+sample_data/
+# hr_model.keras  # Optional: Keep or Exclude if enforcing Git LFS

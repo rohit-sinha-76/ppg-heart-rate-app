@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPG Heart Rate Predictor & Visualizer</title>
+    <!-- Modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at top left, #12101e 0%, #1a1b3a 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .grid-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-panel { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .panel-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 65, 108, 0.3);
+        }
+
+        .upload-zone {
+            width: 100%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: #ff4757;
+            background: rgba(255, 71, 87, 0.05);
+        }
+
+        #fileInput { display: none; }
+
+        .btn-predict {
+            width: 100%;
+            margin-top: 15px;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-predict:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5);
+        }
+
+        .btn-predict:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .metrics-card {
+            justify-content: space-between;
+        }
+
+        .metric-title {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 20px;
+        }
+
+        #heartRate {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0px 4px 20px rgba(255, 75, 43, 0.4);
+            margin-bottom: 5px;
+        }
+
+        .bpm-label {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .criteria-box {
+            background: rgba(255, 107, 107, 0.08);
+            border: 1px solid rgba(255, 107, 107, 0.2);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: left;
+        }
+
+        .criteria-box h4 {
+            color: #ff6b6b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chart-wrapper {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 10px;
+            height: 300px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .pulse-prediction {
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px rgba(255, 75, 43, 0.4); }
+            100% { text-shadow: 0 0 30px rgba(255, 75, 43, 0.8), 0 0 40px rgba(255, 65, 108, 0.6); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <h1>PPG Predictor</h1>
+            <p class="subtitle"> AI - Powered 1D CNN Heart Rate Prediction dashboard</p>
+        </header>
+
+        <div class="criteria-box">
+            <h4>💡 CSV Criteria</h4>
+            <ul>
+                <li><strong>Sequence Length</strong>: Exactly 1000 values (8 seconds at 125Hz).</li>
+                <li><strong>Format</strong>: A single column (e.g. <code> PLETH</code>) containing sequential readings.</li>
+                <li>Use samples from the <code>sample_data/</code> folder for instantly testing.</li>
+            </ul>
+        </div>
+
+        <div class="grid-panel">
+            <!-- Left Card: Input selection -->
+            <div class="panel-card">
+                <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <span style="font-size: 2.5rem; margin-bottom: 10px;">📂</span>
+                    <p id="fileUploadText" style="font-weight:600;">Click or Drag to Upload CSV</p>
+                    <p style="font-size:0.8rem; color: rgba(255,255,255,0.4); margin-top:5px;">Supports strictly parsed 1000 nodes</p>
+                    <input type="file" id="fileInput" accept=".csv" onchange="handleFileSelect(event)">
+                </div>
+                <button class="btn-predict" id="predBtn" onclick="predict()" disabled>Predict heart rate</button>
+                <p id="status" style="color: #ff4757;"></p>
+            </div>
+
+            <!-- Right Card: Metric displaying -->
+            <div class="panel-card metrics-card">
+                <div class="metric-title">TARGET PREDICTION</div>
+                <div style="text-align: center;">
+                    <div id="heartRate">--</div>
+                    <div class="bpm-label" id="bpmLabel">BPM</div>
+                </div>
+                <div style="color: rgba(255,255,255,0.3); font-size: 0.8rem;">Buffered over 8 seconds windows</div>
+            </div>
+        </div>
+
+        <!-- Dynamic Timeline charts layout -->
+        <p class="metric-title" style="margin-bottom: 5px;">PPG SIGNAL AMPLITUDE TIMELINE</p>
+        <div class="chart-wrapper">
+            <canvas id="ppgChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let ppgValues = [];
+        let chartInstance = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // set loaded filename standard titles
+            document.getElementById('fileUploadText').innerText = file.name;
+            document.getElementById('status').innerText = "";
+            document.getElementById('heartRate').innerText = "--";
+            document.getElementById('heartRate').classList.remove('pulse-prediction');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const values = e.target.result.split('\n')
+                    .map(v => parseFloat(v))
+                    .filter(v => !isNaN(v));
+
+                if (values.length < 1000) {
+                    document.getElementById('status').innerText = `Error: Sideload contains only ${values.length} data rows, relies on strictly 1000.`;
+                    document.getElementById('predBtn').disabled = true;
+                    if (chartInstance) chartInstance.destroy();
+                    return;
+                }
+
+                // Slice strictly to 1000 points
+                ppgValues = values.slice(0, 1000);
+                document.getElementById('predBtn').disabled = false;
+                document.getElementById('status').innerText = "Signal successfully loaded!";
+                
+                plotSignal(ppgValues);
+            };
+            reader.readAsText(file);
+        }
+
+        function predict() {
+            if (ppgValues.length < 1000) return;
+
+            const predBtn = document.getElementById('predBtn');
+            const statusLabel = document.getElementById('status');
+            const hrDisplay = document.getElementById('heartRate');
+
+            predBtn.innerText = 'Predicting...';
+            predBtn.disabled = true;
+            statusLabel.innerText = "Querying server-side CNN engine...";
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ppg_signal: ppgValues })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+
+                hrDisplay.innerText = data.heart_rate;
+                hrDisplay.classList.add('pulse-prediction');
+                statusLabel.innerText = "Done!";
+                statusLabel.style.color = "#2ed573";
+                predBtn.innerText = 'Predict heart rate';
+                predBtn.disabled = false;
+            })
+            .catch(err => {
+                statusLabel.innerText = 'Error: ' + err.message;
+                statusLabel.style.color = "#ff4757";
+                predBtn.innerText = 'Predict heart rate';
+                predBtn.disabled = false;
+                hrDisplay.innerText = "Error";
+            });
+        }
+
+        function plotSignal(data) {
+            const ctx = document.getElementById('ppgChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(255, 65, 108, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 65, 108, 0.0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: data.length}, (_, i) => (i / 125).toFixed(2) + 's'),
+                    datasets: [{
+                        label: 'PPG Signal (Plethygmogram)',
+                        data: data,
+                        borderColor: '#ff416c',
+                        borderWidth: 2,
+                        backgroundColor: gradient,
+                        fill: true,
+                        pointRadius: 0,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.4)', maxTicksLimit: 10 },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.4)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
