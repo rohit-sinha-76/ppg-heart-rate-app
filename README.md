@@ -10,7 +10,7 @@ This application serves as an end-to-end framework for predicting Heart Rate (BP
 
 ---
 
-## 🔬 Model & Pipeline Optimization
+## Model & Pipeline Optimization
 The training pipeline (`main.py`) processes indices from the **BIDMC PPG dataset** with optimized robustness guidelines:
 
 1.  **Overlapping Window Lookback**: Standardized 8-second time frames (1000 nodes at 125Hz) preceding every 1Hz HR reading frequency.
@@ -19,14 +19,14 @@ The training pipeline (`main.py`) processes indices from the **BIDMC PPG dataset
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 *   `main.py`: ETL scripts and Conv1D algorithm compilation, scoring, and saving procedures.
 *   `app.py`: Backend Flask route handlers loading `hr_model.keras` into inference.
 *   `templates/`: UI scripts rendered via vanilla glassmorphism structures connecting endpoints accurately with Chart.js controllers on trigger query loads.
 
 ---
 
-## ⚙️ Usage Breakdown
+## Usage Breakdown
 
 ### 1. Training Cycle
 To recreate weights utilizing robust ETL scripts:
@@ -43,7 +43,7 @@ Open **`http://localhost:5000`** and drag in single column sequential datasets m
 
 ---
 
-## 🧪 Running Unit Tests
+## Running Unit Tests
 Validate endpoint logic and shape validation safety checks using `pytest`:
 ```bash
 python -m pytest test_app.py
@@ -51,7 +51,7 @@ python -m pytest test_app.py
 
 ---
 
-## 🐳 Containerization (Docker)
+## Containerization (Docker)
 To package and run the Dashboard inside an isolated environment:
 
 1.  **Build the Docker Image**:
