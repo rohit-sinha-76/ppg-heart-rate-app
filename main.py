@@ -233,6 +233,9 @@ def main():
     plt.grid(True, linestyle='--', alpha=0.6)
     
     print("Displaying visualization... Close the plot to exit the script.")
+    import os
+    os.makedirs('plots', exist_ok=True)
+    plt.savefig('plots/actual_vs_predicted.png')
     plt.show()
 
 if __name__ == "__main__":
